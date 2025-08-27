@@ -20,6 +20,8 @@ npm run dev
 
 ## Deployment
 
+### GitHub Pages
+
 This project is configured for GitHub Pages deployment. To deploy:
 
 1. Make sure you have the latest changes committed to your repository
@@ -28,6 +30,16 @@ This project is configured for GitHub Pages deployment. To deploy:
    npm run deploy
    ```
 3. The site will be available at: https://rafay-ahmed.github.io/EmployeeManager
+
+### Vercel (Recommended)
+
+For Vercel deployment:
+
+1. Install Vercel CLI: `npm i -g vercel`
+2. Deploy with: `vercel`
+3. Or connect your GitHub repository to Vercel for automatic deployments
+
+**Note:** The project is configured for both GitHub Pages and Vercel. For Vercel deployment, the base path is automatically handled.
 
 ## Build
 
