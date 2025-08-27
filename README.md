@@ -1,12 +1,46 @@
-# React + Vite
+# Employee Manager
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A React-based employee management system with attendance and payroll tracking features.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Employee attendance tracking
+- Payroll management
+- Modern UI with Tailwind CSS
+- Responsive design
 
-## Expanding the ESLint configuration
+## Development
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+To run the project locally:
+
+```bash
+npm install
+npm run dev
+```
+
+## Deployment
+
+This project is configured for GitHub Pages deployment. To deploy:
+
+1. Make sure you have the latest changes committed to your repository
+2. Run the deployment command:
+   ```bash
+   npm run deploy
+   ```
+3. The site will be available at: https://rafay-ahmed.github.io/EmployeeManager
+
+## Build
+
+To build for production:
+
+```bash
+npm run build
+```
+
+## Technologies Used
+
+- React 19
+- Vite
+- Tailwind CSS
+- XLSX for Excel file handling
+- File-saver for file downloads
