@@ -1,6 +1,35 @@
 import React, { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
 
+// Helper function to apply cell styling
+const applyCellStyle = (cell, isLWP) => {
+  if (isLWP) {
+    // Red background for LWP
+    cell.s = {
+      fill: { 
+        patternType: "solid", 
+        fgColor: { rgb: "FFFF0000" }
+      },
+      font: { 
+        color: { rgb: "FFFFFFFF" }, 
+        bold: true
+      }
+    };
+  } else {
+    // Green background for Present
+    cell.s = {
+      fill: { 
+        patternType: "solid", 
+        fgColor: { rgb: "FF00FF00" }
+      },
+      font: { 
+        color: { rgb: "FF000000" }, 
+        bold: true
+      }
+    };
+  }
+};
+
 export default function AttendanceApp() {
   const [employees, setEmployees] = useState([]);
   const [attendance, setAttendance] = useState({});
@@ -78,17 +107,19 @@ export default function AttendanceApp() {
       const attendanceValue = ws[attendanceCell]?.v;
       
       if (attendanceValue === "LWP") {
-        ws[attendanceCell].s = {
-          fill: { fgColor: { rgb: "FFFF0000" } }, // Red background
-          font: { color: { rgb: "FFFFFFFF" } } // White text
-        };
+        applyCellStyle(ws[attendanceCell], true);
       } else if (attendanceValue === "Present") {
-        ws[attendanceCell].s = {
-          fill: { fgColor: { rgb: "FF00FF00" } }, // Green background
-          font: { color: { rgb: "FF000000" } } // Black text
-        };
+        applyCellStyle(ws[attendanceCell], false);
       }
     }
+    
+    // Set column widths for better formatting
+    ws['!cols'] = [
+      { width: 12 }, // Date
+      { width: 20 }, // Name
+      { width: 15 }, // Duty
+      { width: 15 }  // Attendance
+    ];
     
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Daily Attendance");
@@ -126,17 +157,19 @@ export default function AttendanceApp() {
       const attendanceValue = ws[attendanceCell]?.v;
       
       if (attendanceValue === "LWP") {
-        ws[attendanceCell].s = {
-          fill: { fgColor: { rgb: "FFFF0000" } }, // Red background
-          font: { color: { rgb: "FFFFFFFF" } } // White text
-        };
+        applyCellStyle(ws[attendanceCell], true);
       } else if (attendanceValue === "Present") {
-        ws[attendanceCell].s = {
-          fill: { fgColor: { rgb: "FF00FF00" } }, // Green background
-          font: { color: { rgb: "FF000000" } } // Black text
-        };
+        applyCellStyle(ws[attendanceCell], false);
       }
     }
+    
+    // Set column widths for better formatting
+    ws['!cols'] = [
+      { width: 12 }, // Date
+      { width: 20 }, // Name
+      { width: 15 }, // Duty
+      { width: 15 }  // Attendance
+    ];
     
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, `Attendance_${viewPastDate}`);
@@ -265,17 +298,19 @@ export default function AttendanceApp() {
       const attendanceValue = summarySheet[attendanceCell]?.v;
       
       if (attendanceValue === "LWP") {
-        summarySheet[attendanceCell].s = {
-          fill: { fgColor: { rgb: "FFFF0000" } }, // Red background
-          font: { color: { rgb: "FFFFFFFF" } } // White text
-        };
+        applyCellStyle(summarySheet[attendanceCell], true);
       } else if (attendanceValue === "Present") {
-        summarySheet[attendanceCell].s = {
-          fill: { fgColor: { rgb: "FF00FF00" } }, // Green background
-          font: { color: { rgb: "FF000000" } } // Black text
-        };
+        applyCellStyle(summarySheet[attendanceCell], false);
       }
     }
+    
+    // Set column widths for better formatting
+    summarySheet['!cols'] = [
+      { width: 15 }, // Date
+      { width: 25 }, // Name
+      { width: 20 }, // Duty
+      { width: 18 }  // Attendance
+    ];
     
     XLSX.utils.book_append_sheet(wb, summarySheet, "Attendance Summary");
 
