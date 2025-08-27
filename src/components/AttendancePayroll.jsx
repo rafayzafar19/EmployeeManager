@@ -60,18 +60,116 @@ export default function AttendanceApp() {
     return records[empId] || "Present";
   };
 
+  // Helper function to get attendance status code
+  const getAttendanceStatusCode = (status) => {
+    switch (status) {
+      case 'Present':
+        return 'A'; // Active/Present
+      case 'LWP':
+        return 'N'; // No Show/Not Present
+      case 'Sick':
+        return 'S'; // Sick Leave
+      case 'Vacation':
+        return 'V'; // Vacation
+      case 'Holiday':
+        return 'H'; // Holiday
+      default:
+        return 'A'; // Default to Active/Present
+    }
+  };
+
   // Export daily attendance Excel
   const exportDailyAttendance = () => {
     if (!employees.length) return alert("No employees loaded.");
-    const records = employees.map((emp) => ({
-      Date: selectedDate,
-      Name: emp.name,
-      Duty: emp.duty,
-      Attendance: getAttendanceStatus(attendance, emp.id),
-    }));
-    const ws = XLSX.utils.json_to_sheet(records);
+    
     const wb = XLSX.utils.book_new();
+    
+    // Create daily attendance sheet with grid layout
+    const dailyData = [];
+    
+    // Header row with day numbers
+    const headerRow = ['ID', 'Employee Name', 'Title', 'Department'];
+    const daysInMonth = new Date(selectedDate.slice(0, 4), selectedDate.slice(5, 7), 0).getDate();
+    
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dayStr = day.toString().padStart(2, '0');
+      const date = new Date(selectedDate.slice(0, 4), selectedDate.slice(5, 7) - 1, day);
+      const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+      headerRow.push(dayStr, dayName);
+    }
+    headerRow.push('Total Present Days', 'Signature');
+    dailyData.push(headerRow);
+    
+    // Employee rows
+    employees.forEach((emp, index) => {
+      const row = ['*', emp.name, '', '']; // ID, Name, Title, Department
+      
+      let presentDays = 0;
+      
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dayStr = day.toString().padStart(2, '0');
+        const dateKey = `${selectedDate.slice(0, 4)}-${selectedDate.slice(5, 7)}-${dayStr}`;
+        
+        // Check if we have attendance data for this date
+        let status = 'A'; // Default to Active/Present
+        if (pastAttendance[dateKey] && pastAttendance[dateKey][emp.id]) {
+          status = getAttendanceStatusCode(pastAttendance[dateKey][emp.id]);
+          if (pastAttendance[dateKey][emp.id] === 'Present') presentDays++;
+        } else {
+          // Check if it's a weekend
+          const date = new Date(dateKey);
+          const dayOfWeek = date.getDay();
+          if (dayOfWeek === 0 || dayOfWeek === 6) {
+            status = 'S'; // Weekend/Scheduled off
+          } else {
+            presentDays++; // Count as present if no data and not weekend
+          }
+        }
+        
+        row.push(status, ''); // Status and empty cell for day name
+      }
+      
+      row.push(presentDays, ''); // Total present days and signature
+      dailyData.push(row);
+    });
+    
+    const ws = XLSX.utils.aoa_to_sheet(dailyData);
+    
+    // Set column widths
+    ws['!cols'] = [
+      { width: 5 },  // ID
+      { width: 20 }, // Employee Name
+      { width: 15 }, // Title
+      { width: 15 }, // Department
+    ];
+    
+    // Add column widths for days (each day gets 2 columns)
+    for (let i = 0; i < daysInMonth; i++) {
+      ws['!cols'].push({ width: 8 }, { width: 8 });
+    }
+    
+    ws['!cols'].push({ width: 15 }, { width: 15 }); // Total Present Days, Signature
+    
     XLSX.utils.book_append_sheet(wb, ws, "Daily Attendance");
+    
+    // Add legend sheet
+    const legendData = [
+      ['Attendance Status Codes'],
+      [''],
+      ['Code', 'Status', 'Description'],
+      ['A', 'Active/Present', 'Employee is present and working'],
+      ['P', 'Present', 'Employee is present (alternative code)'],
+      ['S', 'Sick/Scheduled Off', 'Employee is on sick leave or scheduled day off'],
+      ['N', 'No Show', 'Employee is absent without leave'],
+      ['V', 'Vacation', 'Employee is on vacation'],
+      ['H', 'Holiday', 'Official holiday'],
+      [''],
+      ['Note: Weekends (Saturday/Sunday) are automatically marked as "S" unless attendance is recorded.']
+    ];
+    
+    const legendSheet = XLSX.utils.aoa_to_sheet(legendData);
+    XLSX.utils.book_append_sheet(wb, legendSheet, "Status Codes");
+    
     XLSX.writeFile(wb, `Attendance_${selectedDate}.xlsx`);
   };
 
@@ -90,16 +188,94 @@ export default function AttendanceApp() {
   const exportPastAttendance = () => {
     if (!viewPastDate || !pastAttendance[viewPastDate]) return;
     
-    const records = employees.map((emp) => ({
-      Date: viewPastDate,
-      Name: emp.name,
-      Duty: emp.duty,
-      Attendance: getAttendanceStatus(pastAttendance[viewPastDate], emp.id),
-    }));
-    
-    const ws = XLSX.utils.json_to_sheet(records);
     const wb = XLSX.utils.book_new();
+    
+    // Create past attendance sheet with grid layout
+    const pastData = [];
+    
+    // Header row with day numbers
+    const headerRow = ['ID', 'Employee Name', 'Title', 'Department'];
+    const daysInMonth = new Date(viewPastDate.slice(0, 4), viewPastDate.slice(5, 7), 0).getDate();
+    
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dayStr = day.toString().padStart(2, '0');
+      const date = new Date(viewPastDate.slice(0, 4), viewPastDate.slice(5, 7) - 1, day);
+      const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+      headerRow.push(dayStr, dayName);
+    }
+    headerRow.push('Total Present Days', 'Signature');
+    pastData.push(headerRow);
+    
+    // Employee rows
+    employees.forEach((emp, index) => {
+      const row = ['*', emp.name, '', '']; // ID, Name, Title, Department
+      
+      let presentDays = 0;
+      
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dayStr = day.toString().padStart(2, '0');
+        const dateKey = `${viewPastDate.slice(0, 4)}-${viewPastDate.slice(5, 7)}-${dayStr}`;
+        
+        // Check if we have attendance data for this date
+        let status = 'A'; // Default to Active/Present
+        if (pastAttendance[dateKey] && pastAttendance[dateKey][emp.id]) {
+          status = getAttendanceStatusCode(pastAttendance[dateKey][emp.id]);
+          if (pastAttendance[dateKey][emp.id] === 'Present') presentDays++;
+        } else {
+          // Check if it's a weekend
+          const date = new Date(dateKey);
+          const dayOfWeek = date.getDay();
+          if (dayOfWeek === 0 || dayOfWeek === 6) {
+            status = 'S'; // Weekend/Scheduled off
+          } else {
+            presentDays++; // Count as present if no data and not weekend
+          }
+        }
+        
+        row.push(status, ''); // Status and empty cell for day name
+      }
+      
+      row.push(presentDays, ''); // Total present days and signature
+      pastData.push(row);
+    });
+    
+    const ws = XLSX.utils.aoa_to_sheet(pastData);
+    
+    // Set column widths
+    ws['!cols'] = [
+      { width: 5 },  // ID
+      { width: 20 }, // Employee Name
+      { width: 15 }, // Title
+      { width: 15 }, // Department
+    ];
+    
+    // Add column widths for days (each day gets 2 columns)
+    for (let i = 0; i < daysInMonth; i++) {
+      ws['!cols'].push({ width: 8 }, { width: 8 });
+    }
+    
+    ws['!cols'].push({ width: 15 }, { width: 15 }); // Total Present Days, Signature
+    
     XLSX.utils.book_append_sheet(wb, ws, `Attendance_${viewPastDate}`);
+    
+    // Add legend sheet
+    const legendData = [
+      ['Attendance Status Codes'],
+      [''],
+      ['Code', 'Status', 'Description'],
+      ['A', 'Active/Present', 'Employee is present and working'],
+      ['P', 'Present', 'Employee is present (alternative code)'],
+      ['S', 'Sick/Scheduled Off', 'Employee is on sick leave or scheduled day off'],
+      ['N', 'No Show', 'Employee is absent without leave'],
+      ['V', 'Vacation', 'Employee is on vacation'],
+      ['H', 'Holiday', 'Official holiday'],
+      [''],
+      ['Note: Weekends (Saturday/Sunday) are automatically marked as "S" unless attendance is recorded.']
+    ];
+    
+    const legendSheet = XLSX.utils.aoa_to_sheet(legendData);
+    XLSX.utils.book_append_sheet(wb, legendSheet, "Status Codes");
+    
     XLSX.writeFile(wb, `Past_Attendance_${viewPastDate}.xlsx`);
   };
 
@@ -168,61 +344,96 @@ export default function AttendanceApp() {
     // Export Excel with 2 sheets
     const wb = XLSX.utils.book_new();
 
-    // Create properly formatted attendance summary
-    const formattedAttendanceData = [];
+    // Create monthly attendance grid sheet
+    const monthlyAttendanceData = [];
     
-    // Add header row
-    formattedAttendanceData.push({
-      Date: "Date",
-      Name: "Employee Name", 
-      Duty: "Place of Duty",
-      Attendance: "Attendance Status"
-    });
+    // Header row with day numbers
+    const headerRow = ['ID', 'Employee Name', 'Title', 'Department'];
+    const daysInMonth = new Date(selectedDate.slice(0, 4), selectedDate.slice(5, 7), 0).getDate();
     
-    // Add empty row for spacing
-    formattedAttendanceData.push({
-      Date: "",
-      Name: "",
-      Duty: "",
-      Attendance: ""
-    });
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dayStr = day.toString().padStart(2, '0');
+      const date = new Date(selectedDate.slice(0, 4), selectedDate.slice(5, 7) - 1, day);
+      const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+      headerRow.push(dayStr, dayName);
+    }
+    headerRow.push('Total Present Days', 'Signature');
+    monthlyAttendanceData.push(headerRow);
     
-    // Group by date and add attendance records
-    monthlyRecords.forEach(([date, records]) => {
-      // Add date header
-      formattedAttendanceData.push({
-        Date: `Date: ${date}`,
-        Name: "",
-        Duty: "",
-        Attendance: ""
-      });
+    // Employee rows
+    employees.forEach((emp, index) => {
+      const row = ['*', emp.name, '', '']; // ID, Name, Title, Department
       
-      // Add employee records for this date
-      employees.forEach((emp) => {
-        formattedAttendanceData.push({
-          Date: "",
-          Name: emp.name,
-          Duty: emp.duty,
-          Attendance: getAttendanceStatus(records, emp.id),
-        });
-      });
+      let presentDays = 0;
       
-      // Add empty row between dates
-      formattedAttendanceData.push({
-        Date: "",
-        Name: "",
-        Duty: "",
-        Attendance: ""
-      });
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dayStr = day.toString().padStart(2, '0');
+        const dateKey = `${selectedDate.slice(0, 4)}-${selectedDate.slice(5, 7)}-${dayStr}`;
+        
+        // Check if we have attendance data for this date
+        let status = 'A'; // Default to Active/Present
+        if (pastAttendance[dateKey] && pastAttendance[dateKey][emp.id]) {
+          status = getAttendanceStatusCode(pastAttendance[dateKey][emp.id]);
+          if (pastAttendance[dateKey][emp.id] === 'Present') presentDays++;
+        } else {
+          // Check if it's a weekend
+          const date = new Date(dateKey);
+          const dayOfWeek = date.getDay();
+          if (dayOfWeek === 0 || dayOfWeek === 6) {
+            status = 'S'; // Weekend/Scheduled off
+          } else {
+            presentDays++; // Count as present if no data and not weekend
+          }
+        }
+        
+        row.push(status, ''); // Status and empty cell for day name
+      }
+      
+      row.push(presentDays, ''); // Total present days and signature
+      monthlyAttendanceData.push(row);
     });
 
-    const summarySheet = XLSX.utils.json_to_sheet(formattedAttendanceData);
-    XLSX.utils.book_append_sheet(wb, summarySheet, "Attendance Summary");
+    const attendanceSheet = XLSX.utils.aoa_to_sheet(monthlyAttendanceData);
+    
+    // Set column widths for attendance sheet
+    attendanceSheet['!cols'] = [
+      { width: 5 },  // ID
+      { width: 20 }, // Employee Name
+      { width: 15 }, // Title
+      { width: 15 }, // Department
+    ];
+    
+    // Add column widths for days (each day gets 2 columns)
+    for (let i = 0; i < daysInMonth; i++) {
+      attendanceSheet['!cols'].push({ width: 8 }, { width: 8 });
+    }
+    
+    attendanceSheet['!cols'].push({ width: 15 }, { width: 15 }); // Total Present Days, Signature
+    
+    XLSX.utils.book_append_sheet(wb, attendanceSheet, "Monthly Attendance");
 
     const payrollSheet = XLSX.utils.json_to_sheet(payroll);
     XLSX.utils.book_append_sheet(wb, payrollSheet, "Payroll Summary");
+    
+    // Add legend sheet
+    const legendData = [
+      ['Attendance Status Codes'],
+      [''],
+      ['Code', 'Status', 'Description'],
+      ['A', 'Active/Present', 'Employee is present and working'],
+      ['P', 'Present', 'Employee is present (alternative code)'],
+      ['S', 'Sick/Scheduled Off', 'Employee is on sick leave or scheduled day off'],
+      ['N', 'No Show', 'Employee is absent without leave'],
+      ['V', 'Vacation', 'Employee is on vacation'],
+      ['H', 'Holiday', 'Official holiday'],
+      [''],
+      ['Note: Weekends (Saturday/Sunday) are automatically marked as "S" unless attendance is recorded.']
+    ];
+    
+    const legendSheet = XLSX.utils.aoa_to_sheet(legendData);
+    XLSX.utils.book_append_sheet(wb, legendSheet, "Status Codes");
 
-    XLSX.writeFile(wb, `Summary_${month}.xlsx`);
+    XLSX.writeFile(wb, `Monthly_Summary_${month}.xlsx`);
   };
 
   return (
@@ -276,7 +487,10 @@ export default function AttendanceApp() {
                       className="bg-gray-600 text-white border border-gray-500 rounded px-2 py-1 focus:outline-none focus:border-red-500"
                     >
                       <option value="Present">Present</option>
-                      <option value="LWP">LWP</option>
+                      <option value="LWP">LWP (Leave Without Pay)</option>
+                      <option value="Sick">Sick Leave</option>
+                      <option value="Vacation">Vacation</option>
+                      <option value="Holiday">Holiday</option>
                     </select>
                   </td>
                 </tr>
@@ -360,6 +574,9 @@ export default function AttendanceApp() {
                   <option value="All">All</option>
                   <option value="Present">Present</option>
                   <option value="LWP">LWP</option>
+                  <option value="Sick">Sick Leave</option>
+                  <option value="Vacation">Vacation</option>
+                  <option value="Holiday">Holiday</option>
                 </select>
                 <button
                   onClick={exportPastAttendance}
@@ -425,7 +642,15 @@ export default function AttendanceApp() {
                         <span className={`px-2 py-1 rounded text-sm font-medium ${
                           status === "Present" 
                             ? "bg-green-600 text-white" 
-                            : "bg-red-600 text-white"
+                            : status === "LWP"
+                            ? "bg-red-600 text-white"
+                            : status === "Sick"
+                            ? "bg-yellow-600 text-white"
+                            : status === "Vacation"
+                            ? "bg-purple-600 text-white"
+                            : status === "Holiday"
+                            ? "bg-blue-600 text-white"
+                            : "bg-gray-600 text-white"
                         }`}>
                           {status}
                         </span>
