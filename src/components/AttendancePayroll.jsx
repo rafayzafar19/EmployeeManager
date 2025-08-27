@@ -55,6 +55,11 @@ export default function AttendanceApp() {
     setAttendance((prev) => ({ ...prev, [id]: status }));
   };
 
+  // Helper function to get attendance status with default
+  const getAttendanceStatus = (records, empId) => {
+    return records[empId] || "Present";
+  };
+
   // Export daily attendance Excel
   const exportDailyAttendance = () => {
     if (!employees.length) return alert("No employees loaded.");
@@ -62,7 +67,7 @@ export default function AttendanceApp() {
       Date: selectedDate,
       Name: emp.name,
       Duty: emp.duty,
-      Attendance: attendance[emp.id] || "Present",
+      Attendance: getAttendanceStatus(attendance, emp.id),
     }));
     const ws = XLSX.utils.json_to_sheet(records);
     const wb = XLSX.utils.book_new();
@@ -76,7 +81,7 @@ export default function AttendanceApp() {
     
     const attendanceRecords = pastAttendance[viewPastDate];
     return employees.filter(emp => {
-      const status = attendanceRecords[emp.id] || "Present";
+      const status = getAttendanceStatus(attendanceRecords, emp.id);
       return filterStatus === "All" || status === filterStatus;
     });
   };
@@ -89,7 +94,7 @@ export default function AttendanceApp() {
       Date: viewPastDate,
       Name: emp.name,
       Duty: emp.duty,
-      Attendance: pastAttendance[viewPastDate][emp.id] || "Present",
+      Attendance: getAttendanceStatus(pastAttendance[viewPastDate], emp.id),
     }));
     
     const ws = XLSX.utils.json_to_sheet(records);
@@ -104,7 +109,8 @@ export default function AttendanceApp() {
     
     const records = pastAttendance[date];
     const total = employees.length;
-    const present = employees.filter(emp => records[emp.id] === "Present").length;
+    // Count present as those who are explicitly marked "Present" OR not marked at all (default to present)
+    const present = employees.filter(emp => records[emp.id] === "Present" || records[emp.id] === undefined).length;
     const lwp = employees.filter(emp => records[emp.id] === "LWP").length;
     
     return { total, present, lwp };
@@ -197,7 +203,7 @@ export default function AttendanceApp() {
           Date: "",
           Name: emp.name,
           Duty: emp.duty,
-          Attendance: records[emp.id] || "Present",
+          Attendance: getAttendanceStatus(records, emp.id),
         });
       });
       
@@ -409,7 +415,7 @@ export default function AttendanceApp() {
               </thead>
               <tbody>
                 {getFilteredEmployees().map((emp) => {
-                  const status = pastAttendance[viewPastDate][emp.id] || "Present";
+                  const status = getAttendanceStatus(pastAttendance[viewPastDate], emp.id);
                   return (
                     <tr key={emp.id} className="hover:bg-gray-500 transition-colors">
                       <td className="border border-gray-400 px-3 py-2 text-white">{emp.name}</td>
