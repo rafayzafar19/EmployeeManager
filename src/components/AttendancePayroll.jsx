@@ -70,6 +70,26 @@ export default function AttendanceApp() {
       Attendance: getAttendanceStatus(attendance, emp.id),
     }));
     const ws = XLSX.utils.json_to_sheet(records);
+    
+    // Add cell styling for attendance status
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    for (let R = range.s.r + 1; R <= range.e.r; R++) {
+      const attendanceCell = XLSX.utils.encode_cell({ r: R, c: 3 }); // Attendance column (D)
+      const attendanceValue = ws[attendanceCell]?.v;
+      
+      if (attendanceValue === "LWP") {
+        ws[attendanceCell].s = {
+          fill: { fgColor: { rgb: "FFFF0000" } }, // Red background
+          font: { color: { rgb: "FFFFFFFF" } } // White text
+        };
+      } else if (attendanceValue === "Present") {
+        ws[attendanceCell].s = {
+          fill: { fgColor: { rgb: "FF00FF00" } }, // Green background
+          font: { color: { rgb: "FF000000" } } // Black text
+        };
+      }
+    }
+    
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Daily Attendance");
     XLSX.writeFile(wb, `Attendance_${selectedDate}.xlsx`);
@@ -98,6 +118,26 @@ export default function AttendanceApp() {
     }));
     
     const ws = XLSX.utils.json_to_sheet(records);
+    
+    // Add cell styling for attendance status
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    for (let R = range.s.r + 1; R <= range.e.r; R++) {
+      const attendanceCell = XLSX.utils.encode_cell({ r: R, c: 3 }); // Attendance column (D)
+      const attendanceValue = ws[attendanceCell]?.v;
+      
+      if (attendanceValue === "LWP") {
+        ws[attendanceCell].s = {
+          fill: { fgColor: { rgb: "FFFF0000" } }, // Red background
+          font: { color: { rgb: "FFFFFFFF" } } // White text
+        };
+      } else if (attendanceValue === "Present") {
+        ws[attendanceCell].s = {
+          fill: { fgColor: { rgb: "FF00FF00" } }, // Green background
+          font: { color: { rgb: "FF000000" } } // Black text
+        };
+      }
+    }
+    
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, `Attendance_${viewPastDate}`);
     XLSX.writeFile(wb, `Past_Attendance_${viewPastDate}.xlsx`);
@@ -217,6 +257,26 @@ export default function AttendanceApp() {
     });
 
     const summarySheet = XLSX.utils.json_to_sheet(formattedAttendanceData);
+    
+    // Add cell styling for attendance status in the summary sheet
+    const range = XLSX.utils.decode_range(summarySheet['!ref']);
+    for (let R = range.s.r; R <= range.e.r; R++) {
+      const attendanceCell = XLSX.utils.encode_cell({ r: R, c: 3 }); // Attendance column (D)
+      const attendanceValue = summarySheet[attendanceCell]?.v;
+      
+      if (attendanceValue === "LWP") {
+        summarySheet[attendanceCell].s = {
+          fill: { fgColor: { rgb: "FFFF0000" } }, // Red background
+          font: { color: { rgb: "FFFFFFFF" } } // White text
+        };
+      } else if (attendanceValue === "Present") {
+        summarySheet[attendanceCell].s = {
+          fill: { fgColor: { rgb: "FF00FF00" } }, // Green background
+          font: { color: { rgb: "FF000000" } } // Black text
+        };
+      }
+    }
+    
     XLSX.utils.book_append_sheet(wb, summarySheet, "Attendance Summary");
 
     const payrollSheet = XLSX.utils.json_to_sheet(payroll);
